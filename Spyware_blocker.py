@@ -35,21 +35,20 @@ def modify_privacy_settings(log_widget):
     log_widget.insert(tk.END, "Finished modifying privacy settings.\n")
 
 def clear_browser_data(log_widget):
-    log_widget.insert(tk.END, "Clearing browser data...\n")
     browsers = ["chrome", "firefox", "edge"]
     for browser in browsers:
+        log_widget.insert(tk.END, f"Clearing {browser} data...\n")
         subprocess.run([browser, "--clear-browsing-data=all"])
     log_widget.insert(tk.END, "Finished clearing browser data.\n")
 
 def disable_unnecessary_services(log_widget):
-    log_widget.insert(tk.END, "Disabling unnecessary services...\n")
     services = ["DiagTrack", "dmwappushservice"]
     for service in services:
+        log_widget.insert(tk.END, f"Disabling service: {service}\n")
         subprocess.run(["sc", "config", service, "start=", "disabled"])
     log_widget.insert(tk.END, "Finished disabling unnecessary services.\n")
 
 def block_ads_and_trackers(log_widget):
-    log_widget.insert(tk.END, "Blocking ads and trackers...\n")
     hosts_url = "https://someonewhocares.org/hosts/hosts"
     response = requests.get(hosts_url)
     with open("C:\\Windows\\System32\\drivers\\etc\\hosts", "a") as hosts_file:
@@ -100,7 +99,24 @@ def update_status_bar(status_label):
     status = f"IP: {ip}, Country: {country}, Mullvad: {'Connected' if is_connected else 'Not Connected'}"
     status_label.config(text=status)
 
+def toggle_dark_mode():
+    global dark_mode
+    dark_mode = not dark_mode
+    if dark_mode:
+        root.configure(bg="#1e1e1e")
+        log_widget.configure(bg="#1e1e1e", fg="#ffffff")
+        button_frame.configure(bg="#1e1e1e")
+        status_label.configure(bg="#1e1e1e", fg="#ffffff")
+    else:
+        root.configure(bg="#2d2d2d")
+        log_widget.configure(bg="#1e1e1e", fg="#00ff00")
+        button_frame.configure(bg="#2d2d2d")
+        status_label.configure(bg="#2d2d2d", fg="#ffffff")
+
 def main():
+    global root, log_widget, button_frame, status_label, dark_mode
+    dark_mode = False
+
     if not is_admin():
         print("This script must be run as an administrator.")
         ctypes.windll.shell32.ShellExecuteW(None, "runas", sys.executable, __file__, None, 1)
@@ -108,43 +124,41 @@ def main():
 
     root = tk.Tk()
     root.title("Privacy Enhancer")
-    root.geometry("500x700")
+    root.geometry("600x800")
     root.configure(bg="#2d2d2d")
 
     tk.Label(root, text="Privacy Enhancer", font=("Helvetica", 16), bg="#2d2d2d", fg="#ffffff").pack(pady=10)
 
-    log_widget = scrolledtext.ScrolledText(root, width=60, height=15, bg="#1e1e1e", fg="#00ff00")
+    log_widget = scrolledtext.ScrolledText(root, width=80, height=20, bg="#1e1e1e", fg="#00ff00")
     log_widget.pack(pady=10)
 
     button_frame = tk.Frame(root, bg="#2d2d2d")
     button_frame.pack(pady=10)
 
-    tk.Button(button_frame, text="Block Telemetry IPs", command=lambda: block_ips_with_firewall(download_ips("https://raw.githubusercontent.com/braydos-h/Anti-Spyware/main/firewall%20settings.txt"), log_widget), bg="#4CAF50", fg="#ffffff").pack(pady=5)
-    tk.Button(button_frame, text="Disable Cortana & Telemetry", command=lambda: modify_privacy_settings(log_widget), bg="#2196F3", fg="#ffffff").pack(pady=5)
-    tk.Button(button_frame, text="Clear Browser Data", command=lambda: clear_browser_data(log_widget), bg="#f44336", fg="#ffffff").pack(pady=5)
-    tk.Button(button_frame, text="Disable Unnecessary Services", command=lambda: disable_unnecessary_services(log_widget), bg="#ff9800", fg="#ffffff").pack(pady=5)
-    tk.Button(button_frame, text="Block Ads & Trackers", command=lambda: block_ads_and_trackers(log_widget), bg="#9C27B0", fg="#ffffff").pack(pady=5)
-    tk.Button(button_frame, text="Enable Firewall", command=lambda: enable_firewall(log_widget), bg="#3F51B5", fg="#ffffff").pack(pady=5)
-    tk.Button(button_frame, text="Change DNS to Mullvad", command=lambda: change_dns(log_widget), bg="#00BCD4", fg="#ffffff").pack(pady=5)
-    tk.Button(button_frame, text="Disk Cleanup", command=lambda: disk_cleanup(log_widget), bg="#8BC34A", fg="#ffffff").pack(pady=5)
-    tk.Button(button_frame, text="Apply All Privacy Features", command=lambda: apply_all_privacy_features(log_widget), bg="#FF5722", fg="#ffffff").pack(pady=5)
+    buttons = [
+        ("Block Telemetry IPs", "#4CAF50", lambda: block_ips_with_firewall(download_ips("https://raw.githubusercontent.com/braydos-h/Anti-Spyware/main/firewall%20settings.txt"), log_widget)),
+        ("Disable Cortana & Telemetry", "#2196F3", lambda: modify_privacy_settings(log_widget)),
+        ("Clear Browser Data", "#f44336", lambda: clear_browser_data(log_widget)),
+        ("Disable Unnecessary Services", "#ff9800", lambda: disable_unnecessary_services(log_widget)),
+        ("Block Ads & Trackers", "#9C27B0", lambda: block_ads_and_trackers(log_widget)),
+        ("Enable Firewall", "#3F51B5", lambda: enable_firewall(log_widget)),
+        ("Change DNS to Mullvad", "#00BCD4", lambda: change_dns(log_widget)),
+        ("Disk Cleanup", "#8BC34A", lambda: disk_cleanup(log_widget)),
+        ("Apply All Privacy Features", "#FF5722", lambda: apply_all_privacy_features(log_widget))
+    ]
 
-    tk.Label(root, text="Beta 0.1 by Braydos", font=("Helvetica", 10), bg="#2d2d2d", fg="#ffffff").pack(side=tk.LEFT, padx=10)
+    for text, color, command in buttons:
+        tk.Button(button_frame, text=text, command=command, bg=color, fg="#ffffff").pack(pady=5)
+
+    tk.Button(root, text="Toggle Dark Mode", command=toggle_dark_mode, bg="#777777", fg="#ffffff").pack(pady=5)
+
+    tk.Label(root, text="Beta 0.2 by Braydos", font=("Helvetica", 10), bg="#2d2d2d", fg="#ffffff").pack(side=tk.LEFT, padx=10)
 
     current_time = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     tk.Label(root, text=current_time, font=("Helvetica", 10), bg="#2d2d2d", fg="#ffffff").pack(side=tk.RIGHT, padx=10)
 
     status_label = tk.Label(root, text="", font=("Helvetica", 10), bg="#2d2d2d", fg="#ffffff")
     status_label.pack(side=tk.BOTTOM, fill=tk.X)
-
-    def show_privacy_info():
-        messagebox.showinfo("Privacy Features", "1. Block Telemetry IPs\n2. Disable Cortana & Telemetry\n3. Clear Browser Data\n4. Disable Unnecessary Services\n5. Block Ads & Trackers\n6. Enable Firewall\n7. Change DNS to Mullvad\n8. Disk Cleanup\n9. Apply All Privacy Features")
-
-    menu_bar = tk.Menu(root)
-    help_menu = tk.Menu(menu_bar, tearoff=0)
-    help_menu.add_command(label="Privacy Features", command=show_privacy_info)
-    menu_bar.add_cascade(label="Help", menu=help_menu)
-    root.config(menu=menu_bar)
 
     update_status_bar(status_label)
 
